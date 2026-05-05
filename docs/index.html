@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Khlosh — A premium macOS terminal</title>
+  <meta name="description" content="A premium macOS terminal. Real PTY, splits, drag-to-reorder, command palette, WebGL renderer. Coffee-themed, native, fast." />
+  <meta name="theme-color" content="#211a15" />
+
+  <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Crect width='1024' height='1024' rx='224' fill='%23211a15'/%3E%3Cg transform='translate(192 192) scale(2.55) translate(-1554.366 -4414.983)'%3E%3Cg transform='matrix(.389658 0 0 .389658 688.31 2938.593)' fill='%23eddac6'%3E%3Cg transform='matrix(.646341 -.646341 .646341 .646341 -17.366 3799.858)'%3E%3Cpath d='M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z'/%3E%3C/g%3E%3Cg transform='matrix(-.646341 .646341 -.646341 -.646341 5105.759 4420.839)'%3E%3Cpath d='M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z'/%3E%3C/g%3E%3Cg transform='matrix(-.646341 -.646341 .646341 -.646341 2233.526 6673.962)'%3E%3Cpath d='M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z'/%3E%3C/g%3E%3Cg transform='matrix(.646341 .646341 -.646341 .646341 2855.097 1546.643)'%3E%3Cpath d='M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            coffee:        '#211a15',
+            'coffee-soft': '#2d241e',
+            'coffee-edge': '#3e3229',
+            'coffee-warm': '#4f4136',
+            cream:         '#EADBC8',
+            caramel:       '#D4A373',
+            'caramel-deep':'#b8855a',
+            'brown-dim':   '#9A7B65',
+            'brown-text':  '#7d8087',
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', '"SF Mono"', 'Menlo', 'monospace'],
+          },
+          animation: {
+            'fade-up':     'fadeUp 600ms cubic-bezier(0.16,1,0.3,1) both',
+            'pulse-ring':  'pulseRing 3s ease-in-out infinite',
+            'spin-slow':   'spin 14s linear infinite',
+            'shimmer':     'shimmer 3s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeUp: { '0%': { opacity: 0, transform: 'translateY(14px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            pulseRing: { '0%,100%': { boxShadow: '0 0 32px rgba(212,163,115,0.18), 0 0 0 0 rgba(212,163,115,0.10)' }, '50%': { boxShadow: '0 0 56px rgba(212,163,115,0.36), 0 0 0 12px rgba(212,163,115,0)' } },
+            shimmer: { '0%,100%': { opacity: 0.55 }, '50%': { opacity: 1 } },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    :root { color-scheme: dark; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #100c09;
+      color: #EADBC8;
+      font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Background grain — adds organic warmth so the dark surface isn't flat */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,163,115,0.10), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(184,133,90,0.06), transparent 60%);
+    }
+
+    /* Mouse-reactive glow */
+    #cursor-glow {
+      position: fixed; pointer-events: none; z-index: 1;
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,163,115,0.08) 0%, rgba(212,163,115,0.02) 40%, transparent 70%);
+      transform: translate(-50%, -50%);
+      transition: left 120ms linear, top 120ms linear, opacity 300ms ease;
+      opacity: 0;
+    }
+
+    /* Subtle grid overlay */
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(212,163,115,1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,163,115,1) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image:      radial-gradient(ellipse 70% 60% at 50% 30%, black 0%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 0%, transparent 75%);
+    }
+
+    /* Premium scrollbar */
+    ::-webkit-scrollbar       { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(212,163,115,0.30); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(212,163,115,0.55); }
+
+    ::selection { background: rgba(212,163,115,0.30); color: #EADBC8; }
+
+    /* Caramel CTA — gradient + inset highlight + soft outer glow */
+    .btn-caramel {
+      background: linear-gradient(135deg, #D4A373 0%, #b8855a 100%);
+      color: #1a1410;
+      box-shadow: 0 6px 28px rgba(212,163,115,0.32), inset 0 1px 0 rgba(255,255,255,0.18);
+      transition: box-shadow 220ms ease, transform 100ms ease;
+    }
+    .btn-caramel:hover { box-shadow: 0 8px 38px rgba(212,163,115,0.55), inset 0 1px 0 rgba(255,255,255,0.20); }
+    .btn-caramel:active { transform: scale(0.98); }
+
+    /* Ghost button */
+    .btn-ghost {
+      background: rgba(45,36,30,0.6);
+      border: 1px solid rgba(212,163,115,0.16);
+      color: #EADBC8;
+      backdrop-filter: blur(8px);
+      transition: border-color 180ms, background 180ms;
+    }
+    .btn-ghost:hover { background: rgba(62,50,41,0.7); border-color: rgba(212,163,115,0.36); }
+
+    /* Feature card */
+    .feature-card {
+      background: linear-gradient(135deg, rgba(50,38,29,0.55) 0%, rgba(28,21,15,0.7) 100%);
+      border: 1px solid rgba(212,163,115,0.10);
+      box-shadow: inset 0 1px 0 rgba(212,163,115,0.07);
+      transition: border-color 220ms, transform 220ms;
+    }
+    .feature-card:hover { border-color: rgba(212,163,115,0.22); transform: translateY(-2px); }
+
+    /* Mock terminal */
+    .mock-window {
+      background: #211a15;
+      border: 1px solid #3e3229;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 1px 0 rgba(212,163,115,0.06) inset;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    /* Reveal-on-scroll */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 700ms ease, transform 700ms cubic-bezier(0.16,1,0.3,1); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+
+<body class="antialiased">
+
+  <!-- Cursor glow (desktop only) -->
+  <div id="cursor-glow" aria-hidden="true"></div>
+
+  <!-- Top nav -->
+  <header class="fixed top-0 inset-x-0 z-30 backdrop-blur-md" style="background: rgba(16,12,9,0.55); border-bottom: 1px solid rgba(212,163,115,0.06);">
+    <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="#top" class="flex items-center gap-2.5 group">
+        <span class="w-7 h-7 rounded-[7px] bg-coffee border border-coffee-edge flex items-center justify-center group-hover:border-caramel/40 transition-colors">
+          <!-- 4-petal logo SVG, scaled small -->
+          <svg viewBox="0 0 251 251" width="18" height="18" fill="#EDDAC6">
+            <g transform="translate(-1554.366 -4414.983)"><g transform="matrix(.389658 0 0 .389658 688.31 2938.593)">
+              <g transform="matrix(.646341 -.646341 .646341 .646341 -17.366 3799.858)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 .646341 -.646341 -.646341 5105.759 4420.839)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 -.646341 .646341 -.646341 2233.526 6673.962)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(.646341 .646341 -.646341 .646341 2855.097 1546.643)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+            </g></g>
+          </svg>
+        </span>
+        <span class="font-mono font-medium tracking-tight text-cream">Khlosh</span>
+        <span class="font-mono text-[10px] text-brown-dim tracking-widest ml-1 mt-px">v0.1.0</span>
+      </a>
+
+      <nav class="hidden sm:flex items-center gap-7 text-[12px] font-mono text-brown-text">
+        <a href="#features"  class="hover:text-cream transition-colors">Features</a>
+        <a href="#shortcuts" class="hover:text-cream transition-colors">Shortcuts</a>
+        <a href="#download"  class="hover:text-cream transition-colors">Download</a>
+      </nav>
+
+      <a href="#download" class="btn-caramel font-mono text-[11px] font-medium px-3.5 py-1.5 rounded-[6px]">Download</a>
+    </div>
+  </header>
+
+  <!-- ╔══ HERO ══════════════════════════════════════════════════════════════ -->
+  <section id="top" class="relative pt-28 pb-24 sm:pt-36 sm:pb-32 px-6 overflow-hidden">
+    <div class="absolute inset-0 grid-overlay opacity-[0.04] pointer-events-none"></div>
+
+    <div class="relative max-w-3xl mx-auto text-center" style="z-index: 2;">
+      <!-- Logo plate -->
+      <div class="mx-auto mb-9 relative" style="width: 96px; height: 96px;">
+        <div class="absolute inset-0 rounded-[24px] animate-spin-slow" style="background: conic-gradient(from 0deg, rgba(212,163,115,0.7), transparent 35%, rgba(212,163,115,0.35) 60%, transparent 95%); padding: 1px;">
+          <div class="w-full h-full rounded-[23px] bg-[#100c09]"></div>
+        </div>
+        <div class="absolute inset-[6px] rounded-[18px] flex items-center justify-center animate-pulse-ring" style="background: linear-gradient(145deg, rgba(72,55,42,0.92) 0%, rgba(36,27,20,0.96) 100%); border: 1px solid rgba(212,163,115,0.20);">
+          <svg viewBox="0 0 251 251" width="46" height="46" fill="#EDDAC6" style="filter: drop-shadow(0 0 14px rgba(212,163,115,0.55)) drop-shadow(0 0 28px rgba(212,163,115,0.25));">
+            <g transform="translate(-1554.366 -4414.983)"><g transform="matrix(.389658 0 0 .389658 688.31 2938.593)">
+              <g transform="matrix(.646341 -.646341 .646341 .646341 -17.366 3799.858)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 .646341 -.646341 -.646341 5105.759 4420.839)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 -.646341 .646341 -.646341 2233.526 6673.962)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(.646341 .646341 -.646341 .646341 2855.097 1546.643)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+            </g></g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Eyebrow -->
+      <p class="font-mono text-[11px] tracking-[0.32em] uppercase text-caramel/85 mb-5 animate-fade-up">A premium macOS terminal</p>
+
+      <h1 class="font-mono font-medium tracking-tight text-cream leading-[1.05] text-4xl sm:text-6xl mb-5 animate-fade-up" style="animation-delay: 80ms;">
+        Move at the speed
+        <br />
+        <span class="text-caramel">of thought.</span>
+      </h1>
+
+      <p class="font-mono text-[14px] sm:text-[15px] text-brown-dim leading-relaxed max-w-xl mx-auto mb-10 animate-fade-up" style="animation-delay: 160ms;">
+        Real PTY. Splittable panes. A command palette that finds anything in a keystroke.
+        Coffee-warm, cinematic, and quietly fast.
+      </p>
+
+      <!-- CTAs -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-up" style="animation-delay: 240ms;">
+        <a href="https://github.com/xadzy/khlosh/releases/download/v0.1.0/Khlosh-0.1.0-arm64.dmg" download="Khlosh-0.1.0-arm64.dmg" id="primary-download" class="btn-caramel font-mono text-[13px] font-medium px-6 py-3 rounded-[8px] inline-flex items-center gap-2.5">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 1.5v8.5"/><path d="M3 6.5l4 4 4-4"/><path d="M2 12.5h10"/>
+          </svg>
+          <span>Download for Mac</span>
+          <span id="arch-label" class="font-mono text-[11px] opacity-70 ml-1">— detecting&hellip;</span>
+        </a>
+        <a href="#download" class="btn-ghost font-mono text-[12px] px-5 py-3 rounded-[8px]">All downloads</a>
+      </div>
+
+      <p class="font-mono text-[11px] text-brown-dim/70 mt-6 animate-fade-up" style="animation-delay: 320ms;">
+        macOS&nbsp;10.12+ &nbsp;·&nbsp; ~93&nbsp;MB &nbsp;·&nbsp; Free
+      </p>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="relative mt-16 flex justify-center animate-shimmer" style="z-index: 2;">
+      <span class="font-mono text-[10px] tracking-[0.3em] text-brown-dim uppercase">scroll&nbsp;&nbsp;↓</span>
+    </div>
+  </section>
+
+  <!-- ╔══ TERMINAL PREVIEW ═════════════════════════════════════════════════ -->
+  <section class="relative px-6 pb-28">
+    <div class="max-w-5xl mx-auto reveal">
+      <div class="mock-window mx-auto" style="aspect-ratio: 1000 / 720; max-width: 980px;">
+        <!-- Title bar -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-coffee-edge bg-coffee">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-[#FF5F57]"></span>
+            <span class="w-3 h-3 rounded-full bg-[#FFBD2E]"></span>
+            <span class="w-3 h-3 rounded-full bg-[#28CA41]"></span>
+          </div>
+          <span class="font-mono text-[12px] text-cream">Khlosh</span>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#9A7B65" stroke-width="1.3"><path d="M6.26 12.91l.39.88a1.4 1.4 0 0 0 2.69 0l.39-.88a1.5 1.5 0 0 1 1.65-.95l.95.1a1.4 1.4 0 0 0 1.43-2.21l-.56-.78a1.5 1.5 0 0 1 0-1.83l.56-.78a1.4 1.4 0 0 0-1.43-2.21l-.95.1a1.5 1.5 0 0 1-1.65-.95l-.39-.88a1.4 1.4 0 0 0-2.69 0l-.39.88a1.5 1.5 0 0 1-1.66.95l-.95-.1a1.4 1.4 0 0 0-1.43 2.21l.56.78a1.5 1.5 0 0 1 0 1.83l-.56.78a1.4 1.4 0 0 0 1.43 2.21l.95-.1a1.5 1.5 0 0 1 1.66.95z"/><circle cx="8" cy="8" r="2"/></svg>
+        </div>
+
+        <div class="flex h-[calc(100%-44px)]">
+          <!-- Sidebar -->
+          <aside class="w-[180px] shrink-0 border-r border-coffee-edge bg-coffee py-5 px-3.5 flex flex-col gap-3">
+            <p class="font-mono text-[10px] uppercase tracking-widest text-brown-dim">Sessions</p>
+            <div class="flex flex-col gap-0.5">
+              <div class="flex items-center justify-between px-2 py-1.5 rounded-[4px] bg-coffee-warm">
+                <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-[#A3BE8C]"></span><span class="font-mono text-[12px] text-cream">loca-dev</span></span>
+                <span class="font-mono text-[10px] text-brown-dim">zsh</span>
+              </div>
+              <div class="flex items-center justify-between px-2 py-1.5 rounded-[4px]">
+                <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-[#A3BE8C]"></span><span class="font-mono text-[12px] text-brown-text">claude</span></span>
+                <span class="font-mono text-[10px] text-brown-dim">zsh</span>
+              </div>
+              <div class="flex items-center justify-between px-2 py-1.5 rounded-[4px]">
+                <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-[#E57373]"></span><span class="font-mono text-[12px] text-brown-text">db-monitor</span></span>
+                <span class="font-mono text-[10px] text-brown-dim">zsh</span>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main pane -->
+          <div class="flex-1 p-5 font-mono text-[13px] leading-[1.55] overflow-hidden">
+            <p class="text-[#94979c]">Last login: Tue May 5 21:52:09 on ttys000</p>
+            <p class="mt-3.5 text-cream">user@nova ~ % system.status</p>
+            <p class="text-[#94979c]"><span class="text-[#A3BE8C]">●</span> network: connected</p>
+            <p class="text-[#94979c]"><span class="text-[#A3BE8C]">●</span> auth: verified</p>
+            <p class="text-[#94979c]"><span class="text-[#E57373]">●</span> sync: inactive</p>
+            <p class="text-[#94979c]"><span class="text-[#A3BE8C]">●</span> processes: running (12)</p>
+            <p class="mt-3.5 text-cream">user@nova ~ % ls</p>
+            <p class="text-cream">apps/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;config/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;logs/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;projects/</p>
+            <p class="mt-3.5 text-cream">user@nova terminal-ui % npm run dev</p>
+            <p class="text-[#94979c]"><span class="text-brown-dim">&gt;</span> starting development server&hellip;</p>
+            <p class="text-[#84adff]">&gt; http://localhost:3000</p>
+            <p class="mt-1.5 text-[#94979c]"><span class="text-[#A3BE8C]">●</span> compiled successfully in 1.1s</p>
+            <p class="mt-3.5 text-cream">user@nova ~ % git ch<span class="inline-block w-[2px] h-[1.05em] bg-caramel align-text-bottom" style="animation: blink 1s steps(2) infinite;"></span><span class="text-[#d5d7da]/60">eckout</span></p>
+          </div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="flex items-center justify-between px-4 py-2.5 border-t border-coffee-edge bg-coffee text-brown-text font-mono text-[11px]">
+          <span class="flex items-center gap-2">
+            <svg width="10" height="10" viewBox="0 0 10 13" fill="#A3BE8C"><circle cx="2.5" cy="2" r="1.5"/><circle cx="7.5" cy="4" r="1.5"/><circle cx="2.5" cy="11" r="1.5"/><path d="M2.5 3.5V9.5" stroke="#A3BE8C" stroke-width="1.2"/><path d="M2.5 3.5C2.5 3.5 2.5 5.5 7.5 5.5" stroke="#A3BE8C" stroke-width="1.2" fill="none"/></svg>
+            main*
+          </span>
+          <span>UTF-8 · 0 errors</span>
+        </div>
+      </div>
+
+      <p class="text-center font-mono text-[11px] text-brown-dim/70 mt-5">
+        actual app, not a render
+      </p>
+    </div>
+  </section>
+
+  <style>@keyframes blink { 50% { opacity: 0; } }</style>
+
+  <!-- ╔══ FEATURES ════════════════════════════════════════════════════════ -->
+  <section id="features" class="relative px-6 pb-28">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14 reveal">
+        <p class="font-mono text-[11px] tracking-[0.3em] uppercase text-caramel/80 mb-3">Built for flow</p>
+        <h2 class="font-mono font-medium text-cream text-3xl sm:text-4xl tracking-tight">Everything where your fingers expect it.</h2>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4 sm:gap-5">
+        <!-- Real PTY -->
+        <div class="feature-card rounded-[12px] p-6 reveal">
+          <div class="w-10 h-10 rounded-[9px] flex items-center justify-center mb-4" style="background: rgba(212,163,115,0.10); border: 1px solid rgba(212,163,115,0.20);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3.5" width="14" height="11" rx="1.8"/>
+              <path d="M5 7.5 L7.2 9.3 L5 11.1"/>
+              <path d="M9 11.1 L12.5 11.1"/>
+            </svg>
+          </div>
+          <h3 class="font-mono font-medium text-cream text-[15px] mb-2">Real PTY</h3>
+          <p class="font-mono text-[13px] text-brown-dim leading-relaxed">Native zsh and bash. Full ANSI colours, signals, history, shell integration — none of the toy emulator quirks.</p>
+        </div>
+        <!-- Splits -->
+        <div class="feature-card rounded-[12px] p-6 reveal">
+          <div class="w-10 h-10 rounded-[9px] flex items-center justify-center mb-4" style="background: rgba(212,163,115,0.10); border: 1px solid rgba(212,163,115,0.20);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3.5" width="14" height="11" rx="1.8"/>
+              <path d="M9 3.8 L9 14.2"/>
+            </svg>
+          </div>
+          <h3 class="font-mono font-medium text-cream text-[15px] mb-2">Drag-to-split panes</h3>
+          <p class="font-mono text-[13px] text-brown-dim leading-relaxed">Drag a session onto another and hold for 0.8&nbsp;s. The card splits in half — horizontal or vertical, whichever your wrist meant.</p>
+        </div>
+        <!-- Reorder -->
+        <div class="feature-card rounded-[12px] p-6 reveal">
+          <div class="w-10 h-10 rounded-[9px] flex items-center justify-center mb-4" style="background: rgba(212,163,115,0.10); border: 1px solid rgba(212,163,115,0.20);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="6.5" cy="4.5" r="0.9"/><circle cx="11.5" cy="4.5" r="0.9"/>
+              <circle cx="6.5" cy="9"   r="0.9"/><circle cx="11.5" cy="9"   r="0.9"/>
+              <circle cx="6.5" cy="13.5" r="0.9"/><circle cx="11.5" cy="13.5" r="0.9"/>
+            </svg>
+          </div>
+          <h3 class="font-mono font-medium text-cream text-[15px] mb-2">Drag to reorder</h3>
+          <p class="font-mono text-[13px] text-brown-dim leading-relaxed">Sessions, splits, the whole layout — rearrange them with the gesture you'd already try first.</p>
+        </div>
+        <!-- Command palette -->
+        <div class="feature-card rounded-[12px] p-6 reveal">
+          <div class="w-10 h-10 rounded-[9px] flex items-center justify-center mb-4" style="background: rgba(212,163,115,0.10); border: 1px solid rgba(212,163,115,0.20);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6.5" y="6.5" width="5" height="5"/>
+              <path d="M6.5 6.5 L4.5 6.5 A1.5 1.5 0 1 1 6.5 4.5 L6.5 6.5"/>
+              <path d="M11.5 6.5 L13.5 6.5 A1.5 1.5 0 1 0 11.5 4.5 L11.5 6.5"/>
+              <path d="M6.5 11.5 L4.5 11.5 A1.5 1.5 0 1 0 6.5 13.5 L6.5 11.5"/>
+              <path d="M11.5 11.5 L13.5 11.5 A1.5 1.5 0 1 1 11.5 13.5 L11.5 11.5"/>
+            </svg>
+          </div>
+          <h3 class="font-mono font-medium text-cream text-[15px] mb-2">Command palette</h3>
+          <p class="font-mono text-[13px] text-brown-dim leading-relaxed">Press ⌘K. Type anything — sessions, settings, splits, themes. Move at the speed of thought.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══ SHORTCUTS ═══════════════════════════════════════════════════════ -->
+  <section id="shortcuts" class="relative px-6 pb-28">
+    <div class="max-w-3xl mx-auto reveal">
+      <div class="text-center mb-12">
+        <p class="font-mono text-[11px] tracking-[0.3em] uppercase text-caramel/80 mb-3">Muscle memory</p>
+        <h2 class="font-mono font-medium text-cream text-3xl sm:text-4xl tracking-tight">Six shortcuts. That's it.</h2>
+      </div>
+
+      <div class="rounded-[12px] overflow-hidden" style="background: rgba(18,13,9,0.7); border: 1px solid rgba(212,163,115,0.10); backdrop-filter: blur(8px);">
+        <ul class="divide-y" style="--tw-divide-opacity: 1; --divide-color: rgba(212,163,115,0.08); ">
+          <li class="flex items-center justify-between px-6 py-3.5"><span class="font-mono text-[13px] text-brown-dim">New session</span>            <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘N</kbd></li>
+          <li class="flex items-center justify-between px-6 py-3.5" style="border-top: 1px solid rgba(212,163,115,0.06);"><span class="font-mono text-[13px] text-brown-dim">Close session</span>          <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘W</kbd></li>
+          <li class="flex items-center justify-between px-6 py-3.5" style="border-top: 1px solid rgba(212,163,115,0.06);"><span class="font-mono text-[13px] text-brown-dim">Command palette</span>        <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘K</kbd></li>
+          <li class="flex items-center justify-between px-6 py-3.5" style="border-top: 1px solid rgba(212,163,115,0.06);"><span class="font-mono text-[13px] text-brown-dim">Preferences</span>            <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘,</kbd></li>
+          <li class="flex items-center justify-between px-6 py-3.5" style="border-top: 1px solid rgba(212,163,115,0.06);"><span class="font-mono text-[13px] text-brown-dim">Split horizontal</span>       <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘H</kbd></li>
+          <li class="flex items-center justify-between px-6 py-3.5" style="border-top: 1px solid rgba(212,163,115,0.06);"><span class="font-mono text-[13px] text-brown-dim">Split vertical</span>         <kbd class="font-mono text-[11px] px-2.5 py-1 rounded-[5px]" style="background: rgba(79,65,54,0.55); color: #D4A373; border: 1px solid rgba(212,163,115,0.22);">⌘V</kbd></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══ DOWNLOAD ════════════════════════════════════════════════════════ -->
+  <section id="download" class="relative px-6 pb-28">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12 reveal">
+        <p class="font-mono text-[11px] tracking-[0.3em] uppercase text-caramel/80 mb-3">v0.1.0</p>
+        <h2 class="font-mono font-medium text-cream text-3xl sm:text-4xl tracking-tight">Download Khlosh</h2>
+        <p class="font-mono text-[13px] text-brown-dim mt-3">Pick the build that matches your Mac.</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4 reveal">
+        <!-- arm64 -->
+        <a id="download-arm64" href="https://github.com/xadzy/khlosh/releases/download/v0.1.0/Khlosh-0.1.0-arm64.dmg" download="Khlosh-0.1.0-arm64.dmg"
+          class="feature-card rounded-[14px] p-6 group block">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-[8px] flex items-center justify-center" style="background: rgba(212,163,115,0.10); border: 1px solid rgba(212,163,115,0.20);">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 1.5a3.5 3.5 0 0 0-3 1.7"/>
+                <path d="M3 5.5C3 4 4 3 5.5 3c1 0 1.5 0.5 2.5 0.5S9 3 10 3c1.5 0 2.5 1 2.5 2.5 0 4-3 9-4.5 9S3 9.5 3 5.5z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-mono text-[14px] text-cream font-medium">Apple Silicon</p>
+              <p class="font-mono text-[11px] text-brown-dim">M1 · M2 · M3 · M4</p>
+            </div>
+          </div>
+          <p class="font-mono text-[12px] text-brown-dim mb-5">Native arm64 build. Recommended for any Mac released after 2020.</p>
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[11px] text-brown-dim/70">Khlosh-0.1.0-arm64.dmg · 93 MB</span>
+            <span class="font-mono text-[11px] text-caramel group-hover:translate-x-0.5 transition-transform">Download →</span>
+          </div>
+        </a>
+
+        <!-- x64 -->
+        <a href="https://github.com/xadzy/khlosh/releases/download/v0.1.0/Khlosh-0.1.0-x64.dmg" download="Khlosh-0.1.0-x64.dmg"
+          class="feature-card rounded-[14px] p-6 group block">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-[8px] flex items-center justify-center" style="background: rgba(212,163,115,0.06); border: 1px solid rgba(212,163,115,0.14);">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9A7B65" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/>
+                <rect x="5.5" y="5.5" width="5" height="5" rx="0.6"/>
+                <path d="M3 7.5h-1M3 9.5h-1M14 7.5h-1M14 9.5h-1M7.5 3v-1M9.5 3v-1M7.5 14v-1M9.5 14v-1"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-mono text-[14px] text-cream font-medium">Intel</p>
+              <p class="font-mono text-[11px] text-brown-dim">x86_64 Macs</p>
+            </div>
+          </div>
+          <p class="font-mono text-[12px] text-brown-dim mb-5">For pre-2020 Intel Macs. Same features, native build.</p>
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[11px] text-brown-dim/70">Khlosh-0.1.0-x64.dmg · 98 MB</span>
+            <span class="font-mono text-[11px] text-caramel group-hover:translate-x-0.5 transition-transform">Download →</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Gatekeeper note -->
+      <div class="mt-8 px-5 py-4 rounded-[10px] reveal" style="background: rgba(212,163,115,0.05); border: 1px solid rgba(212,163,115,0.14);">
+        <p class="font-mono text-[12px] text-brown-dim leading-relaxed">
+          <span class="text-caramel font-medium">First launch:</span> Khlosh is a new project — Apple hasn't notarised it yet.
+          Right-click <span class="text-cream">Khlosh.app</span> in Applications → <span class="text-cream">Open</span>, then click
+          <span class="text-cream">Open</span> again. One-time only.
+        </p>
+        <p class="font-mono text-[11px] text-brown-dim/60 mt-2">
+          Verify your download:&nbsp;
+          <a href="SHA256SUMS.txt" class="text-caramel/70 hover:text-caramel underline underline-offset-2 decoration-caramel/30">SHA256SUMS.txt</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══ FOOTER ══════════════════════════════════════════════════════════ -->
+  <footer class="relative px-6 pb-12 pt-12" style="border-top: 1px solid rgba(212,163,115,0.06);">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5 text-brown-dim">
+      <div class="flex items-center gap-3">
+        <span class="w-7 h-7 rounded-[7px] bg-coffee border border-coffee-edge flex items-center justify-center">
+          <svg viewBox="0 0 251 251" width="16" height="16" fill="#EDDAC6">
+            <g transform="translate(-1554.366 -4414.983)"><g transform="matrix(.389658 0 0 .389658 688.31 2938.593)">
+              <g transform="matrix(.646341 -.646341 .646341 .646341 -17.366 3799.858)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 .646341 -.646341 -.646341 5105.759 4420.839)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(-.646341 -.646341 .646341 -.646341 2233.526 6673.962)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+              <g transform="matrix(.646341 .646341 -.646341 .646341 2855.097 1546.643)"><path d="M1742.446 1977.636s22.09 19.406 11.491 87.776c-15.287 98.616 36.25 137.953 61.455 144.053 65.503 15.853 207.273-16.215 163.842-247.13l-84.139 6.591s60.999 197.433-53.773 227.535c-13.364 3.504-42.509-2.275-54.508-33.028-10.476-26.85-11.042-57.197 2.494-133.382 6.587-37.07-8.541-61.446-13.112-59.814z"/></g>
+            </g></g>
+          </svg>
+        </span>
+        <span class="font-mono text-[12px] text-cream">Khlosh</span>
+        <span class="font-mono text-[10px] tracking-widest text-brown-dim ml-1">v0.1.0</span>
+      </div>
+
+      <p class="font-mono text-[11px] tracking-[0.12em] text-caramel/70 animate-shimmer">✦ Xad touches this ✦</p>
+
+      <a href="https://discord.gg/jyzX8Q5VJ8" target="_blank" rel="noopener"
+        class="font-mono text-[11px] px-3 py-1.5 rounded-full"
+        style="background: rgba(212,163,115,0.08); border: 1px solid rgba(212,163,115,0.18); color: rgba(212,163,115,0.78); transition: all 180ms;">
+        Join Edgycore →
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    // ── Mouse-tracking glow (desktop) ────────────────────────────────────
+    const glow = document.getElementById('cursor-glow');
+    if (matchMedia('(pointer: fine)').matches) {
+      window.addEventListener('mousemove', (e) => {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+        glow.style.opacity = 1;
+      });
+      window.addEventListener('mouseleave', () => glow.style.opacity = 0);
+    }
+
+    // ── Architecture detection ───────────────────────────────────────────
+    // Apple silicon vs Intel can't be 100% determined client-side.
+    // Best-effort: inspect navigator.userAgent + Date hint via WebGL renderer.
+    (function detectArch() {
+      const archLabel = document.getElementById('arch-label');
+      const primary   = document.getElementById('primary-download');
+
+      const ua = navigator.userAgent;
+      const isMac = /Macintosh|Mac OS X/i.test(ua);
+
+      if (!isMac) {
+        archLabel.textContent = '— macOS only';
+        primary.removeAttribute('href');
+        primary.style.opacity = 0.6;
+        primary.style.cursor  = 'not-allowed';
+        return;
+      }
+
+      // Intel-only Macs report `Intel Mac OS X` in UA.
+      // Apple silicon Macs in Safari also report `Intel` (for compat),
+      // but on M-series you can detect via the WebGL renderer string.
+      let isAppleSilicon = false;
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          if (dbg) {
+            const renderer = (gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '').toLowerCase();
+            if (/apple m\d|apple gpu/.test(renderer)) isAppleSilicon = true;
+          }
+        }
+      } catch (_) { /* ignore */ }
+
+      if (isAppleSilicon) {
+        archLabel.textContent = '— Apple Silicon';
+        primary.href = 'https://github.com/xadzy/khlosh/releases/download/v0.1.0/Khlosh-0.1.0-arm64.dmg';
+        primary.setAttribute('download', 'Khlosh-0.1.0-arm64.dmg');
+      } else {
+        // Likely Intel — but hedge with both options visible below.
+        archLabel.textContent = '— Intel';
+        primary.href = 'https://github.com/xadzy/khlosh/releases/download/v0.1.0/Khlosh-0.1.0-x64.dmg';
+        primary.setAttribute('download', 'Khlosh-0.1.0-x64.dmg');
+      }
+    })();
+
+    // ── Reveal-on-scroll ─────────────────────────────────────────────────
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => e.isIntersecting && e.target.classList.add('in'));
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
